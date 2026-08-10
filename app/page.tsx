@@ -267,9 +267,6 @@ export default function Home() {
                   {item.sku && (
                     <p><span className="text-gray-400">SKU:</span> {item.sku}</p>
                   )}
-                  {item.location && (
-                    <p><span className="text-gray-400">Location:</span> {item.location}</p>
-                  )}
                   {(item.field8 || item.field9) && (
                     <p>
                       <span className="text-gray-400">Category:</span>{" "}
