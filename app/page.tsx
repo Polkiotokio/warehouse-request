@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 // ========== CONFIG ==========
-const CORRECT_PASSWORD = "warehouse2026"; // ← Change this password if you want
+const CORRECT_PASSWORD = "warehouse2026";
 const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
 const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
 // ===========================
@@ -29,9 +29,7 @@ export default function Home() {
 
   useEffect(() => {
     const saved = localStorage.getItem("warehouse_auth");
-    if (saved === "true") {
-      setIsAuthenticated(true);
-    }
+    if (saved === "true") setIsAuthenticated(true);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -41,7 +39,7 @@ export default function Home() {
       setIsAuthenticated(true);
       setPasswordError("");
     } else {
-      setPasswordError("Wrong password");
+      setPasswordError("Incorrect password");
     }
   };
 
@@ -70,11 +68,7 @@ export default function Home() {
       try {
         const res = await fetch(
           `${SEARCH_URL}?query=${encodeURIComponent(value)}`,
-          {
-            headers: {
-              "ngrok-skip-browser-warning": "true",
-            },
-          }
+          { headers: { "ngrok-skip-browser-warning": "true" } }
         );
         const data = await res.json();
         setResults(data.items || []);
@@ -83,7 +77,7 @@ export default function Home() {
         setResults([]);
       }
       setLoading(false);
-    }, 400);
+    }, 350);
   };
 
   const addToCart = (item: InventoryItem) => {
@@ -111,11 +105,11 @@ export default function Home() {
 
   const submitOrder = async () => {
     if (!requesterName.trim() || !projectName.trim() || cart.length === 0) {
-      alert("Please fill in your name, project name, and add at least one item.");
+      alert("Please fill in your name, project, and add at least one item.");
       return;
     }
 
-    setMessage("Submitting request...");
+    setMessage("Submitting...");
     setBatchId("");
 
     try {
@@ -153,139 +147,137 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
-      setMessage("Failed to submit request. Please try again.");
+      setMessage("Failed to submit request");
     }
   };
 
+  // Password Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-        <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Warehouse Request</h1>
-          <p className="text-gray-500 mb-6">Enter the password to continue</p>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm">
+          <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-8">
+            <h1 className="text-xl font-semibold text-neutral-900 mb-1">Warehouse</h1>
+            <p className="text-sm text-neutral-500 mb-6">Enter password to continue</p>
 
-          <form onSubmit={handleLogin}>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
-            {passwordError && (
-              <p className="text-red-500 text-sm mb-4">{passwordError}</p>
-            )}
-            <button
-              type="submit"
-              className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
-            >
-              Enter
-            </button>
-          </form>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Password"
+                className="w-full px-4 py-2.5 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition"
+              >
+                Continue
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Main App
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8 flex justify-between items-center">
+    <div className="min-h-screen bg-neutral-50">
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Warehouse Request</h1>
-            <p className="text-gray-500 mt-1">Search items and submit a request</p>
+            <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">Warehouse</h1>
+            <p className="text-sm text-neutral-500 mt-1">Search & request inventory</p>
           </div>
           <button
             onClick={() => {
               localStorage.removeItem("warehouse_auth");
               setIsAuthenticated(false);
             }}
-            className="text-sm text-gray-500 hover:text-gray-800"
+            className="text-sm text-neutral-500 hover:text-neutral-900 transition"
           >
             Logout
           </button>
         </div>
 
-        <div className="mb-6">
+        {/* Search */}
+        <div className="mb-8">
           <input
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search inventory (e.g. nanlite, hdmi, adapter)..."
-            className="w-full px-5 py-3 rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+            placeholder="Search by brand, model, note..."
+            className="w-full px-5 py-3.5 rounded-xl border border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent shadow-sm"
           />
+          {loading && (
+            <p className="text-sm text-neutral-400 mt-3">Searching...</p>
+          )}
         </div>
 
-        {loading && <p className="text-gray-500 mb-4">Searching...</p>}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-          {results.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition"
-            >
-              <div className="flex justify-between items-start gap-3">
-                <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                  {item.title}
-                </h3>
-                <span
-                  className={`font-bold whitespace-nowrap ${
-                    item.quantity > 0 ? "text-green-600" : "text-red-500"
-                  }`}
-                >
-                  {item.quantity} pcs
-                </span>
-              </div>
-
-              <div className="mt-3 space-y-1 text-sm text-gray-600">
-                {item.sku && (
-                  <div>
-                    <span className="text-gray-400">SKU:</span> {item.sku}
-                  </div>
-                )}
-                {item.location && (
-                  <div>
-                    <span className="text-gray-400">Location:</span> {item.location}
-                  </div>
-                )}
-                {item.category && (
-                  <div>
-                    <span className="text-gray-400">Category:</span> {item.category}
-                  </div>
-                )}
-                {item.note && <div className="mt-2 text-gray-500">{item.note}</div>}
-              </div>
-
-              <button
-                onClick={() => addToCart(item)}
-                disabled={item.quantity <= 0}
-                className="mt-4 w-full py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+        {/* Results */}
+        {results.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+            {results.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-xl border border-neutral-200 p-5 hover:border-neutral-300 transition"
               >
-                {item.quantity > 0 ? "Add to Request" : "Out of Stock"}
-              </button>
-            </div>
-          ))}
-        </div>
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <h3 className="font-medium text-neutral-900 leading-snug">
+                    {item.title}
+                  </h3>
+                  <span
+                    className={`text-sm font-medium tabular-nums ${
+                      item.quantity > 0 ? "text-emerald-600" : "text-red-500"
+                    }`}
+                  >
+                    {item.quantity}
+                  </span>
+                </div>
 
+                <div className="space-y-1 text-sm text-neutral-500 mb-4">
+                  {item.location && <p>📍 {item.location}</p>}
+                  {item.category && <p>{item.category}</p>}
+                  {item.note && <p className="line-clamp-2">{item.note}</p>}
+                </div>
+
+                <button
+                  onClick={() => addToCart(item)}
+                  disabled={item.quantity <= 0}
+                  className="w-full py-2 rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed bg-neutral-900 text-white hover:bg-neutral-800"
+                >
+                  {item.quantity > 0 ? "Add" : "Out of stock"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Cart */}
         {cart.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              Your Request ({cart.length} item{cart.length > 1 ? "s" : ""})
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+            <h2 className="text-lg font-medium text-neutral-900 mb-5">
+              Request · {cart.length} item{cart.length > 1 ? "s" : ""}
             </h2>
 
             <div className="space-y-4 mb-6">
               {cart.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between border-b pb-3"
+                  className="flex items-center justify-between gap-4 py-3 border-b border-neutral-100 last:border-0"
                 >
-                  <div>
-                    <div className="font-medium">{item.title}</div>
-                    <div className="text-sm text-gray-500">{item.location}</div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-neutral-900 truncate">{item.title}</p>
+                    <p className="text-sm text-neutral-500">{item.location}</p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <input
                       type="number"
                       min="1"
@@ -293,11 +285,11 @@ export default function Home() {
                       onChange={(e) =>
                         updateQuantity(item.id, parseInt(e.target.value) || 1)
                       }
-                      className="w-16 px-2 py-1 border rounded text-center"
+                      className="w-14 px-2 py-1.5 text-center text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-900"
                     />
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                      className="text-sm text-neutral-400 hover:text-red-600 transition"
                     >
                       Remove
                     </button>
@@ -306,46 +298,46 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Name
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">
+                  Your name
                 </label>
                 <input
                   type="text"
                   value={requesterName}
                   onChange={(e) => setRequesterName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Steve"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+                  placeholder="Name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Project Name
+                <label className="block text-xs font-medium text-neutral-500 mb-1.5">
+                  Project
                 </label>
                 <input
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Kitchen Reno"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+                  placeholder="Project name"
                 />
               </div>
             </div>
 
             <button
               onClick={submitOrder}
-              className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold text-lg hover:bg-green-700 transition"
+              className="w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition"
             >
               Submit Request
             </button>
 
             {message && (
-              <div className="mt-4 p-4 rounded-lg bg-green-50 text-green-800">
-                <p className="font-medium">{message}</p>
+              <div className="mt-5 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-sm font-medium text-emerald-800">{message}</p>
                 {batchId && (
-                  <p className="text-sm mt-1">
-                    Batch ID: <strong>{batchId}</strong>
+                  <p className="text-xs text-emerald-700 mt-1">
+                    Batch ID: <span className="font-mono">{batchId}</span>
                   </p>
                 )}
               </div>
