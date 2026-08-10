@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// ========== n8n URLs (ngrok) ==========
-const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
-const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
-// =====================================
+// ========== CONFIG ==========
+const CORRECT_PASSWORD = "paradiso2026"; // ← Change this to your desired password const SEARCH_URL = 
+"https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search"; const SUBMIT_URL = 
+"https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
+// ===========================
 
 interface InventoryItem {
   id: string;
@@ -22,6 +23,30 @@ interface CartItem extends InventoryItem {
 }
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  // Check if already logged in
+  useEffect(() => {
+    const saved = localStorage.getItem("warehouse_auth");
+    if (saved === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === CORRECT_PASSWORD) {
+      localStorage.setItem("warehouse_auth", "true");
+      setIsAuthenticated(true);
+      setPasswordError("");
+    } else {
+      setPasswordError("Wrong password");
+    }
+  };
+
+  // ========== Main App State ==========
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -134,13 +159,56 @@ export default function Home() {
     }
   };
 
+  // ========== Password Screen ==========
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+        <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Warehouse Request</h1>
+          <p className="text-gray-500 mb-6">Enter the password to continue</p>
+
+          <form onSubmit={handleLogin}>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Password"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm mb-4">{passwordError}</p>
+            )}
+            <button
+              type="submit"
+              className="w-full py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+            >
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== Main App ==========
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Warehouse Request</h1>
-          <p className="text-gray-500 mt-1">Search items and submit a request</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Warehouse Request</h1>
+            <p className="text-gray-500 mt-1">Search items and submit a request</p>
+          </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem("warehouse_auth");
+              setIsAuthenticated(false);
+            }}
+            className="text-sm text-gray-500 hover:text-gray-800"
+          >
+            Logout
+          </button>
         </div>
 
         {/* Search */}
@@ -245,7 +313,6 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Form */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
