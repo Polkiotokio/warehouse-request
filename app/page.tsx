@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 
-// ========== PUT YOUR n8n URLS HERE ==========
+// ========== n8n URLs (ngrok) ==========
 const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
 const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
-// ===========================================
+// =====================================
 
 interface InventoryItem {
   id: string;
@@ -45,7 +45,14 @@ export default function Home() {
     searchTimeout = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${SEARCH_URL}?query=${encodeURIComponent(value)}`);
+        const res = await fetch(
+          `${SEARCH_URL}?query=${encodeURIComponent(value)}`,
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          }
+        );
         const data = await res.json();
         setResults(data.items || []);
       } catch (err) {
@@ -93,6 +100,7 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({
           requesterName,
