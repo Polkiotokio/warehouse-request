@@ -8,19 +8,25 @@ const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhoo
 const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
 // ===========================
 
+// ========== TYPESCRIPT INTERFACES ==========
 interface InventoryItem {
   id: string;
   title: string;
+  brand?: string;
   sku?: string;
   quantity: number;
   location?: string;
+  field8?: string;
+  field9?: string;
   category?: string;
   note?: string;
+  note2?: string;
 }
 
 interface CartItem extends InventoryItem {
   quantity: number;
 }
+// =========================================
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,7 +74,11 @@ export default function Home() {
       try {
         const res = await fetch(
           `${SEARCH_URL}?query=${encodeURIComponent(value)}`,
-          { headers: { "ngrok-skip-browser-warning": "true" } }
+          {
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
+          }
         );
         const data = await res.json();
         setResults(data.items || []);
@@ -125,9 +135,9 @@ export default function Home() {
           items: cart.map((item) => ({
             id: item.id,
             itemName: item.title,
-            sku: item.sku,
+            sku: item.sku || "",
             quantity: item.quantity,
-            location: item.location,
+            location: item.location || "",
           })),
         }),
       });
@@ -241,10 +251,31 @@ export default function Home() {
                   </span>
                 </div>
 
-                <div className="space-y-1 text-sm text-neutral-500 mb-4">
-                  {item.location && <p>📍 {item.location}</p>}
-                  {item.category && <p>{item.category}</p>}
-                  {item.note && <p className="line-clamp-2">{item.note}</p>}
+                <div className="space-y-1.5 text-sm text-neutral-500 mb-4">
+                  {item.brand && (
+                    <p>
+                      <span className="text-neutral-400">Brand:</span> {item.brand}
+                    </p>
+                  )}
+                  {item.sku && (
+                    <p>
+                      <span className="text-neutral-400">SKU:</span> {item.sku}
+                    </p>
+                  )}
+                  {item.location && (
+                    <p>
+                      <span className="text-neutral-400">Location:</span> {item.location}
+                    </p>
+                  )}
+                  {(item.field8 || item.field9) && (
+                    <p>
+                      <span className="text-neutral-400">Category:</span>{" "}
+                      {[item.field8, item.field9].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {item.note && (
+                    <p className="text-neutral-600 mt-1">{item.note}</p>
+                  )}
                 </div>
 
                 <button
