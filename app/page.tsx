@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 
 // ========== CONFIG ==========
-const CORRECT_PASSWORD = "paradiso2026"; // ← Change this to your desired password const SEARCH_URL = 
-"https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search"; const SUBMIT_URL = 
-"https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
+const CORRECT_PASSWORD = "warehouse2026"; // ← Change this password if you want
+const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
+const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
 // ===========================
 
 interface InventoryItem {
@@ -27,7 +27,6 @@ export default function Home() {
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  // Check if already logged in
   useEffect(() => {
     const saved = localStorage.getItem("warehouse_auth");
     if (saved === "true") {
@@ -46,7 +45,6 @@ export default function Home() {
     }
   };
 
-  // ========== Main App State ==========
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -159,7 +157,6 @@ export default function Home() {
     }
   };
 
-  // ========== Password Screen ==========
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
@@ -191,7 +188,6 @@ export default function Home() {
     );
   }
 
-  // ========== Main App ==========
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-6xl mx-auto">
@@ -211,7 +207,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Search */}
         <div className="mb-6">
           <input
             type="text"
@@ -224,7 +219,6 @@ export default function Home() {
 
         {loading && <p className="text-gray-500 mb-4">Searching...</p>}
 
-        {/* Results */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {results.map((item) => (
             <div
@@ -274,7 +268,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Cart + Form */}
         {cart.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
