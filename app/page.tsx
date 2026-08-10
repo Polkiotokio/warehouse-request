@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 // ========== PUT YOUR n8n URLS HERE ==========
-const SEARCH_URL = "http://localhost:5678/webhook/inventory-search";
-const SUBMIT_URL = "http://localhost:5678/webhook/submit-order";
+const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
+const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
 // ===========================================
 
 interface InventoryItem {
