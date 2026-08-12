@@ -13,6 +13,7 @@ interface InventoryItem {
   id: string;
   title: string;
   brand?: string;
+  model?: string; // Added model property
   sku?: string;
   quantity: number;
   location?: string;
@@ -135,7 +136,7 @@ export default function Home() {
           items: cart.map((item) => ({
             id: item.id,
             itemName: item.title,
-            sku: item.sku || "",
+            sku: item.sku || "", // SKU remains quietly passed in background payload
             quantity: item.quantity,
             location: item.location || "",
           })),
@@ -264,8 +265,9 @@ export default function Home() {
                   {item.brand && (
                     <p><span className="text-gray-400">Brand:</span> {item.brand}</p>
                   )}
-                  {item.sku && (
-                    <p><span className="text-gray-400">SKU:</span> {item.sku}</p>
+                  {/* Model added here instead of SKU */}
+                  {item.model && (
+                    <p><span className="text-gray-400">Model:</span> {item.model}</p>
                   )}
                   {(item.field8 || item.field9) && (
                     <p>
