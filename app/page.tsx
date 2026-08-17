@@ -86,7 +86,7 @@ export default function Home() {
         );
         const data = await res.json();
         setResults(data.items || []);
-        setCurrentPage(1); // reset to first page on new search
+        setCurrentPage(1);
       } catch (err) {
         console.error(err);
         setResults([]);
@@ -96,7 +96,7 @@ export default function Home() {
     }, 350);
   };
 
-  // Pagination calculations
+  // Pagination
   const totalPages = Math.ceil(results.length / RESULTS_PER_PAGE);
   const startIndex = (currentPage - 1) * RESULTS_PER_PAGE;
   const paginatedResults = results.slice(startIndex, startIndex + RESULTS_PER_PAGE);
@@ -119,11 +119,9 @@ export default function Home() {
     });
   };
 
-  // Fixed: allow 0 → automatically remove item from cart
+  // Cart fix: allow quantity 0, do NOT remove the item
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 0) return;
-
-    }
 
     setCart((prev) =>
       prev.map((item) => (item.id === id ? { ...item, quantity } : item))
@@ -390,7 +388,6 @@ export default function Home() {
                         value={item.quantity}
                         onChange={(e) => {
                           const val = e.target.value;
-                          // Allow empty while typing
                           if (val === "") {
                             updateQuantity(item.id, 0);
                             return;
