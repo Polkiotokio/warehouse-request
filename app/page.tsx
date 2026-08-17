@@ -123,9 +123,6 @@ export default function Home() {
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 0) return;
 
-    if (quantity === 0) {
-      setCart((prev) => prev.filter((item) => item.id !== id));
-      return;
     }
 
     setCart((prev) =>
