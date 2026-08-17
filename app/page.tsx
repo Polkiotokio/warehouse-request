@@ -385,7 +385,7 @@ export default function Home() {
                       <input
                         type="number"
                         min="0"
-                        value={item.quantity}
+                        value={item.quantity === 0 ? "" : item.quantity}
                         onChange={(e) => {
                           const val = e.target.value;
                           if (val === "") {
