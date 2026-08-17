@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 const CORRECT_PASSWORD = "warehouse2026";
 const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
 const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
+const RESULTS_PER_PAGE = 12;
 // ===========================
 
 // ========== TYPESCRIPT INTERFACES ==========
@@ -13,7 +14,7 @@ interface InventoryItem {
   id: string;
   title: string;
   brand?: string;
-  model?: string; // Added model property
+  model?: string;
   sku?: string;
   quantity: number;
   location?: string;
@@ -58,6 +59,7 @@ export default function Home() {
   const [projectName, setProjectName] = useState("");
   const [message, setMessage] = useState("");
   const [batchId, setBatchId] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   let searchTimeout: NodeJS.Timeout;
 
@@ -67,6 +69,7 @@ export default function Home() {
 
     if (!value.trim()) {
       setResults([]);
+      setCurrentPage(1);
       return;
     }
 
@@ -83,12 +86,25 @@ export default function Home() {
         );
         const data = await res.json();
         setResults(data.items || []);
+        setCurrentPage(1); // reset to first page on new search
       } catch (err) {
         console.error(err);
         setResults([]);
+        setCurrentPage(1);
       }
       setLoading(false);
     }, 350);
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(results.length / RESULTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * RESULTS_PER_PAGE;
+  const paginatedResults = results.slice(startIndex, startIndex + RESULTS_PER_PAGE);
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const addToCart = (item: InventoryItem) => {
@@ -103,8 +119,15 @@ export default function Home() {
     });
   };
 
+  // Fixed: allow 0 → automatically remove item from cart
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity < 0) return;
+
+    if (quantity === 0) {
+      setCart((prev) => prev.filter((item) => item.id !== id));
+      return;
+    }
+
     setCart((prev) =>
       prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
@@ -136,7 +159,7 @@ export default function Home() {
           items: cart.map((item) => ({
             id: item.id,
             itemName: item.title,
-            sku: item.sku || "", // SKU remains quietly passed in background payload
+            sku: item.sku || "",
             quantity: item.quantity,
             location: item.location || "",
           })),
@@ -153,6 +176,7 @@ export default function Home() {
         setProjectName("");
         setResults([]);
         setQuery("");
+        setCurrentPage(1);
       } else {
         setMessage(data.message || "Something went wrong");
       }
@@ -184,9 +208,11 @@ export default function Home() {
                   autoFocus
                 />
               </div>
+
               {passwordError && (
                 <p className="text-sm font-semibold text-red-500 px-2">{passwordError}</p>
               )}
+
               <button
                 type="submit"
                 className="w-full py-4 bg-[#E0E5EC] text-gray-600 font-bold tracking-wide rounded-xl shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200"
@@ -206,7 +232,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-20">
       <div className="max-w-5xl mx-auto px-6 py-12">
-        
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
@@ -242,56 +267,100 @@ export default function Home() {
 
         {/* Results */}
         {results.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {results.map((item) => (
-              <div
-                key={item.id}
-                className="bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-6 flex flex-col"
-              >
-                <div className="flex justify-between items-start gap-4 mb-4">
-                  <h3 className="font-bold text-gray-700 leading-snug">
-                    {item.title}
-                  </h3>
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-black shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] ${
-                      item.quantity > 0 ? "text-emerald-600" : "text-red-500"
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+              {paginatedResults.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-6 flex flex-col"
+                >
+                  <div className="flex justify-between items-start gap-4 mb-4">
+                    <h3 className="font-bold text-gray-700 leading-snug">
+                      {item.title}
+                    </h3>
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-black shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] ${
+                        item.quantity > 0 ? "text-emerald-600" : "text-red-500"
+                      }`}
+                    >
+                      {item.quantity}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm font-medium text-gray-500 mb-6 flex-grow">
+                    {item.brand && (
+                      <p>
+                        <span className="text-gray-400">Brand:</span> {item.brand}
+                      </p>
+                    )}
+                    {item.model && (
+                      <p>
+                        <span className="text-gray-400">Model:</span> {item.model}
+                      </p>
+                    )}
+                    {(item.field8 || item.field9) && (
+                      <p>
+                        <span className="text-gray-400">Category:</span>{" "}
+                        {[item.field8, item.field9].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                    {item.note && (
+                      <p className="text-gray-600 mt-3 p-3 rounded-lg shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] text-xs">
+                        {item.note}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => addToCart(item)}
+                    disabled={item.quantity <= 0}
+                    className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {item.quantity > 0 ? "Push to Cart" : "Depleted"}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-16">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  Prev
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                      currentPage === page
+                        ? "bg-[#E0E5EC] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] text-gray-800"
+                        : "bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] text-gray-600 active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff]"
                     }`}
                   >
-                    {item.quantity}
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm font-medium text-gray-500 mb-6 flex-grow">
-                  {item.brand && (
-                    <p><span className="text-gray-400">Brand:</span> {item.brand}</p>
-                  )}
-                  {/* Model added here instead of SKU */}
-                  {item.model && (
-                    <p><span className="text-gray-400">Model:</span> {item.model}</p>
-                  )}
-                  {(item.field8 || item.field9) && (
-                    <p>
-                      <span className="text-gray-400">Category:</span>{" "}
-                      {[item.field8, item.field9].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                  {item.note && (
-                    <p className="text-gray-600 mt-3 p-3 rounded-lg shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] text-xs">
-                      {item.note}
-                    </p>
-                  )}
-                </div>
+                    {page}
+                  </button>
+                ))}
 
                 <button
-                  onClick={() => addToCart(item)}
-                  disabled={item.quantity <= 0}
-                  className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  {item.quantity > 0 ? "Push to Cart" : "Depleted"}
+                  Next
                 </button>
+
+                <span className="text-sm font-medium text-gray-500 ml-2">
+                  Page {currentPage} of {totalPages}
+                </span>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* Cart */}
@@ -310,6 +379,7 @@ export default function Home() {
                   {index > 0 && (
                     <div className="w-full h-[2px] bg-[#E0E5EC] shadow-[inset_1px_1px_2px_#a3b1c6,inset_-1px_-1px_2px_#ffffff] my-4 rounded-full" />
                   )}
+
                   <div className="flex items-center justify-between gap-6 py-2">
                     <div className="min-w-0 flex-grow">
                       <p className="font-bold text-gray-700 truncate">{item.title}</p>
@@ -319,11 +389,17 @@ export default function Home() {
                     <div className="flex items-center gap-4 shrink-0">
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         value={item.quantity}
-                        onChange={(e) =>
-                          updateQuantity(item.id, parseInt(e.target.value) || 1)
-                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          // Allow empty while typing
+                          if (val === "") {
+                            updateQuantity(item.id, 0);
+                            return;
+                          }
+                          updateQuantity(item.id, parseInt(val) || 0);
+                        }}
                         className="w-16 px-2 py-2 text-center font-bold text-gray-700 bg-[#E0E5EC] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] rounded-lg focus:outline-none"
                       />
                       <button
@@ -377,7 +453,10 @@ export default function Home() {
                 <p className="text-sm font-bold text-gray-700">{message}</p>
                 {batchId && (
                   <p className="text-xs font-medium text-gray-500 mt-2">
-                    Batch Signature: <span className="font-mono bg-[#E0E5EC] px-2 py-1 rounded shadow-[inset_1px_1px_3px_#a3b1c6,inset_-1px_-1px_3px_#ffffff]">{batchId}</span>
+                    Batch Signature:{" "}
+                    <span className="font-mono bg-[#E0E5EC] px-2 py-1 rounded shadow-[inset_1px_1px_3px_#a3b1c6,inset_-1px_-1px_3px_#ffffff]">
+                      {batchId}
+                    </span>
                   </p>
                 )}
               </div>
