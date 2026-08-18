@@ -120,6 +120,22 @@ function stockLabel(qty: number) {
   return { text: `${qty} available`, color: "text-[#16A34A]", dot: "bg-[#16A34A]" };
 }
 
+function CartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 6h15l-1.5 9h-12L5 3H2"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="20" r="1.5" fill="currentColor" />
+      <circle cx="18" cy="20" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function CataloguePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -131,6 +147,7 @@ export default function CataloguePage() {
   const [addedId, setAddedId] = useState("");
   const [flipped, setFlipped] = useState<Record<string, boolean>>({});
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("warehouse_auth") === "true") {
@@ -179,7 +196,6 @@ export default function CataloguePage() {
   }, [items]);
 
   const sections = SECTION_ORDER.filter((s) => grouped[s]);
-  const subGroups = Object.keys(grouped[activeSection] || {});
 
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -214,6 +230,74 @@ export default function CataloguePage() {
     setFlipped((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const selectSection = (section: string) => {
+    setActiveSection(section);
+    setActiveGroup("All");
+  };
+
+  const Sidebar = () => (
+    <div className="bg-white border border-[#E4E7EC] rounded-lg p-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] px-2 py-2">
+        Categories
+      </p>
+
+      {sections.map((section) => {
+        const open = activeSection === section;
+        const subs = Object.keys(grouped[section] || {});
+
+        return (
+          <div key={section} className="mb-1">
+            <button
+              onClick={() => selectSection(section)}
+              className={`w-full min-h-11 px-3 rounded-md text-left text-sm flex items-center justify-between ${
+                open
+                  ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                  : "text-[#172033] hover:bg-[#F6F7F9] font-medium"
+              }`}
+            >
+              <span>{section}</span>
+              <span className="text-xs">{open ? "−" : "+"}</span>
+            </button>
+
+            {open && (
+              <div className="mt-1 mb-2 ml-2 pl-2 border-l border-[#E4E7EC] space-y-1">
+                <button
+                  onClick={() => {
+                    setActiveGroup("All");
+                    setMobileNavOpen(false);
+                  }}
+                  className={`w-full min-h-10 px-3 rounded-md text-left text-[13px] ${
+                    activeGroup === "All"
+                      ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                      : "text-[#667085]"
+                  }`}
+                >
+                  All {section}
+                </button>
+                {subs.map((group) => (
+                  <button
+                    key={group}
+                    onClick={() => {
+                      setActiveGroup(group);
+                      setMobileNavOpen(false);
+                    }}
+                    className={`w-full min-h-10 px-3 rounded-md text-left text-[13px] ${
+                      activeGroup === group
+                        ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                        : "text-[#667085]"
+                    }`}
+                  >
+                    {group}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center text-[#172033]">
@@ -224,14 +308,13 @@ export default function CataloguePage() {
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#172033] font-sans">
-      {/* Fullscreen photo overlay */}
       {fullscreenPhoto && (
         <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
           onClick={() => setFullscreenPhoto(null)}
         >
           <button
-            className="absolute top-4 right-4 h-10 px-4 rounded-lg bg-white text-sm font-semibold"
+            className="absolute top-4 right-4 min-h-11 px-4 rounded-lg bg-white text-sm font-semibold"
             onClick={() => setFullscreenPhoto(null)}
           >
             Close
@@ -246,93 +329,54 @@ export default function CataloguePage() {
       )}
 
       <div className="max-w-[1400px] mx-auto px-4 py-5">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <div>
-            <h1 className="text-[28px] font-bold tracking-tight">Warehouse Catalogue</h1>
+            <h1 className="text-2xl md:text-[28px] font-bold tracking-tight">
+              Warehouse Catalogue
+            </h1>
             <p className="text-[13px] text-[#667085] mt-1">
               Find → identify → add to cart
             </p>
           </div>
+
           <Link
             href="/"
-            className="h-10 px-4 rounded-lg border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9]"
+            className="min-h-11 px-4 rounded-lg border border-[#E4E7EC] bg-white text-sm font-medium inline-flex items-center gap-2"
           >
+            <CartIcon />
             Cart ({cart.length})
           </Link>
         </div>
 
-        {/* Search */}
-        <div className="mb-5">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search item, SKU, connector, brand or description..."
-            className="w-full h-12 px-4 rounded-lg border border-[#E4E7EC] bg-white text-[15px] placeholder:text-[#667085] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-          />
-        </div>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search item, SKU, brand or description..."
+          className="w-full min-h-12 px-4 rounded-lg border border-[#E4E7EC] bg-white text-[16px] placeholder:text-[#667085] focus:outline-none focus:ring-2 focus:ring-[#2563EB] mb-4"
+        />
+
+        {/* Mobile categories toggle */}
+        {!query && (
+          <button
+            className="lg:hidden w-full min-h-11 mb-3 rounded-lg border border-[#E4E7EC] bg-white text-sm font-semibold"
+            onClick={() => setMobileNavOpen((v) => !v)}
+          >
+            {mobileNavOpen ? "Hide categories" : "Show categories"}
+          </button>
+        )}
 
         <div className="flex gap-5 items-start">
-          {/* Left fixed sidebar */}
           {!query && (
-            <aside className="w-56 shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto">
-              <div className="bg-white border border-[#E4E7EC] rounded-lg p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] mb-2 px-1">
-                  Categories
-                </p>
-                <div className="space-y-1 mb-4">
-                  {sections.map((section) => (
-                    <button
-                      key={section}
-                      onClick={() => {
-                        setActiveSection(section);
-                        setActiveGroup("All");
-                      }}
-                      className={`w-full text-left px-2.5 py-2 rounded-md text-sm ${
-                        activeSection === section
-                          ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
-                          : "text-[#667085] hover:bg-[#F6F7F9] font-medium"
-                      }`}
-                    >
-                      {section}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] mb-2 px-1">
-                  Subcategories
-                </p>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => setActiveGroup("All")}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-md text-[13px] ${
-                      activeGroup === "All"
-                        ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
-                        : "text-[#667085] hover:bg-[#F6F7F9]"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {subGroups.map((group) => (
-                    <button
-                      key={group}
-                      onClick={() => setActiveGroup(group)}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-md text-[13px] ${
-                        activeGroup === group
-                          ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
-                          : "text-[#667085] hover:bg-[#F6F7F9]"
-                      }`}
-                    >
-                      {group}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <aside
+              className={`${
+                mobileNavOpen ? "block" : "hidden"
+              } lg:block w-full lg:w-64 shrink-0 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto`}
+            >
+              <Sidebar />
             </aside>
           )}
 
-          {/* Main list */}
           <main className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">
@@ -353,7 +397,7 @@ export default function CataloguePage() {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {visibleItems.map((item) => {
                 const stock = stockLabel(item.quantity);
                 const isFlipped = !!flipped[item.id];
@@ -365,44 +409,38 @@ export default function CataloguePage() {
                         isFlipped ? "[transform:rotateY(180deg)]" : ""
                       }`}
                     >
-                      {/* FRONT */}
-                      <div className="bg-white border border-[#E4E7EC] rounded-lg px-4 py-3 flex items-center justify-between gap-4 [backface-visibility:hidden]">
+                      <div className="bg-white border border-[#E4E7EC] rounded-lg p-4 [backface-visibility:hidden]">
                         {item.photo && (
                           <button
                             onClick={() => toggleFlip(item.id)}
-                            title="Show photo"
-                            className="absolute top-0 right-3 w-7 h-4 bg-[#2563EB] rounded-b-md text-white text-[10px] font-bold flex items-end justify-center pb-0.5 hover:bg-[#1D4ED8]"
+                            className="absolute top-0 right-3 min-w-10 min-h-8 bg-[#2563EB] rounded-b-md text-white text-xs font-bold"
                           >
-                            ▾
+                            Photo
                           </button>
                         )}
 
-                        <div className="min-w-0 pr-8">
-                          <p className="text-[15px] font-semibold leading-snug">
+                        <div className="pr-16">
+                          <p className="text-[16px] font-semibold">
                             {item.brand || item.title}
                             {item.model ? ` · ${item.model}` : ""}
                           </p>
-                          <p className="text-[13px] text-[#667085] mt-0.5">
-                            {item.group}
-                          </p>
+                          <p className="text-[13px] text-[#667085] mt-1">{item.group}</p>
                           {item.note && (
-                            <p className="text-[12px] text-[#667085] mt-1 line-clamp-1">
+                            <p className="text-[12px] text-[#667085] mt-1 line-clamp-2">
                               {item.note}
                             </p>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-4 shrink-0">
-                          <div
-                            className={`flex items-center gap-1.5 text-[13px] font-medium ${stock.color}`}
-                          >
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <div className={`flex items-center gap-1.5 text-[13px] font-medium ${stock.color}`}>
                             <span className={`w-2 h-2 rounded-full ${stock.dot}`} />
                             {stock.text}
                           </div>
                           <button
                             onClick={() => addToCart(item)}
                             disabled={item.quantity <= 0}
-                            className="h-9 px-3 rounded-md border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="min-h-11 px-4 rounded-md border border-[#E4E7EC] bg-white text-sm font-semibold disabled:opacity-40"
                           >
                             {item.quantity <= 0
                               ? "Unavailable"
@@ -413,32 +451,33 @@ export default function CataloguePage() {
                         </div>
                       </div>
 
-                      {/* BACK (photo) */}
-                      <div className="absolute inset-0 bg-white border border-[#E4E7EC] rounded-lg p-3 flex items-center justify-center gap-3 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div className="absolute inset-0 bg-white border border-[#E4E7EC] rounded-lg p-3 flex flex-col items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
                         {item.photo ? (
                           <img
                             src={item.photo}
                             alt={item.brand || item.title}
-                            className="max-h-28 max-w-[70%] object-contain cursor-zoom-in rounded-md"
+                            className="max-h-32 max-w-[80%] object-contain"
                             onClick={() => setFullscreenPhoto(item.photo || null)}
                           />
                         ) : (
                           <p className="text-sm text-[#667085]">No photo</p>
                         )}
-                        <button
-                          onClick={() => toggleFlip(item.id)}
-                          className="absolute top-2 right-2 h-8 px-3 rounded-md border border-[#E4E7EC] bg-white text-xs font-semibold"
-                        >
-                          Back
-                        </button>
-                        {item.photo && (
+                        <div className="flex gap-2 mt-3">
                           <button
-                            onClick={() => setFullscreenPhoto(item.photo || null)}
-                            className="absolute bottom-2 right-2 h-8 px-3 rounded-md bg-[#2563EB] text-white text-xs font-semibold"
+                            onClick={() => toggleFlip(item.id)}
+                            className="min-h-11 px-4 rounded-md border border-[#E4E7EC] text-sm font-semibold"
                           >
-                            Expand
+                            Back
                           </button>
-                        )}
+                          {item.photo && (
+                            <button
+                              onClick={() => setFullscreenPhoto(item.photo || null)}
+                              className="min-h-11 px-4 rounded-md bg-[#2563EB] text-white text-sm font-semibold"
+                            >
+                              Expand
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
