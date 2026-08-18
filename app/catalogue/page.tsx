@@ -17,6 +17,7 @@ interface InventoryItem {
   quantity: number;
   location?: string;
   note?: string;
+  photo?: string;
 }
 
 interface CartItem extends InventoryItem {
@@ -112,8 +113,10 @@ const SECTION_ORDER = [
 ];
 
 function stockLabel(qty: number) {
-  if (qty <= 0) return { text: "Out of stock", color: "text-[#DC2626]", dot: "bg-[#DC2626]" };
-  if (qty <= 2) return { text: `${qty} low stock`, color: "text-[#F59E0B]", dot: "bg-[#F59E0B]" };
+  if (qty <= 0)
+    return { text: "Out of stock", color: "text-[#DC2626]", dot: "bg-[#DC2626]" };
+  if (qty <= 2)
+    return { text: `${qty} low stock`, color: "text-[#F59E0B]", dot: "bg-[#F59E0B]" };
   return { text: `${qty} available`, color: "text-[#16A34A]", dot: "bg-[#16A34A]" };
 }
 
@@ -126,6 +129,8 @@ export default function CataloguePage() {
   const [activeSection, setActiveSection] = useState("Cables");
   const [activeGroup, setActiveGroup] = useState("All");
   const [addedId, setAddedId] = useState("");
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem("warehouse_auth") === "true") {
@@ -178,21 +183,17 @@ export default function CataloguePage() {
 
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list: InventoryItem[] = [];
-
     if (q) {
-      list = items.filter((item) =>
-        `${item.title} ${item.brand} ${item.model} ${item.sku} ${item.note} ${item.location} ${item.group}`
+      return items.filter((item) =>
+        `${item.title} ${item.brand} ${item.model} ${item.sku} ${item.note} ${item.group}`
           .toLowerCase()
           .includes(q)
       );
-    } else if (activeGroup === "All") {
-      list = Object.values(grouped[activeSection] || {}).flat();
-    } else {
-      list = grouped[activeSection]?.[activeGroup] || [];
     }
-
-    return list;
+    if (activeGroup === "All") {
+      return Object.values(grouped[activeSection] || {}).flat();
+    }
+    return grouped[activeSection]?.[activeGroup] || [];
   }, [items, query, activeSection, activeGroup, grouped]);
 
   const addToCart = (item: InventoryItem) => {
@@ -209,6 +210,10 @@ export default function CataloguePage() {
     setTimeout(() => setAddedId(""), 1200);
   };
 
+  const toggleFlip = (id: string) => {
+    setFlipped((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center text-[#172033]">
@@ -219,137 +224,228 @@ export default function CataloguePage() {
 
   return (
     <div className="min-h-screen bg-[#F6F7F9] text-[#172033] font-sans">
-      <div className="max-w-6xl mx-auto px-5 py-6">
+      {/* Fullscreen photo overlay */}
+      {fullscreenPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setFullscreenPhoto(null)}
+        >
+          <button
+            className="absolute top-4 right-4 h-10 px-4 rounded-lg bg-white text-sm font-semibold"
+            onClick={() => setFullscreenPhoto(null)}
+          >
+            Close
+          </button>
+          <img
+            src={fullscreenPhoto}
+            alt="Product"
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      <div className="max-w-[1400px] mx-auto px-4 py-5">
+        {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <h1 className="text-[28px] font-bold tracking-tight">Warehouse Catalogue</h1>
             <p className="text-[13px] text-[#667085] mt-1">
-              Find → identify → add to request
+              Find → identify → add to cart
             </p>
           </div>
           <Link
             href="/"
             className="h-10 px-4 rounded-lg border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9]"
           >
-            Request ({cart.length})
+            Cart ({cart.length})
           </Link>
         </div>
 
+        {/* Search */}
         <div className="mb-5">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search item, SKU, connector, location or description..."
+            placeholder="Search item, SKU, connector, brand or description..."
             className="w-full h-12 px-4 rounded-lg border border-[#E4E7EC] bg-white text-[15px] placeholder:text-[#667085] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
 
-        {!query && (
-          <>
-            <div className="flex flex-wrap gap-5 border-b border-[#E4E7EC] mb-4">
-              {sections.map((section) => (
-                <button
-                  key={section}
-                  onClick={() => {
-                    setActiveSection(section);
-                    setActiveGroup("All");
-                  }}
-                  className={`pb-3 text-sm ${
-                    activeSection === section
-                      ? "text-[#2563EB] font-semibold border-b-2 border-[#2563EB]"
-                      : "text-[#667085] font-medium"
-                  }`}
-                >
-                  {section}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-4">
-              <button
-                onClick={() => setActiveGroup("All")}
-                className={`px-3 py-1.5 rounded-full text-[13px] font-medium border ${
-                  activeGroup === "All"
-                    ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]"
-                    : "bg-white border-[#E4E7EC] text-[#667085]"
-                }`}
-              >
-                All
-              </button>
-              {subGroups.map((group) => (
-                <button
-                  key={group}
-                  onClick={() => setActiveGroup(group)}
-                  className={`px-3 py-1.5 rounded-full text-[13px] font-medium border ${
-                    activeGroup === group
-                      ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]"
-                      : "bg-white border-[#E4E7EC] text-[#667085]"
-                  }`}
-                >
-                  {group}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">
-            {query ? "Search results" : activeGroup === "All" ? activeSection : activeGroup}
-          </h2>
-          <p className="text-[13px] text-[#667085]">{visibleItems.length} items</p>
-        </div>
-
-        {loading && <p className="text-sm text-[#667085]">Loading catalogue...</p>}
-
-        {!loading && visibleItems.length === 0 && (
-          <div className="bg-white border border-[#E4E7EC] rounded-lg p-6 text-sm text-[#667085]">
-            No items found.
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {visibleItems.map((item) => {
-            const stock = stockLabel(item.quantity);
-            return (
-              <div
-                key={item.id}
-                className="bg-white border border-[#E4E7EC] rounded-lg px-4 py-3 flex items-center justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="text-[15px] font-semibold leading-snug">
-                    {item.brand || item.title}
-                    {item.model ? ` · ${item.model}` : ""}
-                  </p>
-                  <p className="text-[13px] text-[#667085] mt-0.5">
-                    {[item.group, item.location].filter(Boolean).join(" · ")}
-                  </p>
-                  {item.note && (
-                    <p className="text-[12px] text-[#667085] mt-1 line-clamp-1">{item.note}</p>
-                  )}
+        <div className="flex gap-5 items-start">
+          {/* Left fixed sidebar */}
+          {!query && (
+            <aside className="w-56 shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto">
+              <div className="bg-white border border-[#E4E7EC] rounded-lg p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] mb-2 px-1">
+                  Categories
+                </p>
+                <div className="space-y-1 mb-4">
+                  {sections.map((section) => (
+                    <button
+                      key={section}
+                      onClick={() => {
+                        setActiveSection(section);
+                        setActiveGroup("All");
+                      }}
+                      className={`w-full text-left px-2.5 py-2 rounded-md text-sm ${
+                        activeSection === section
+                          ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                          : "text-[#667085] hover:bg-[#F6F7F9] font-medium"
+                      }`}
+                    >
+                      {section}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className={`flex items-center gap-1.5 text-[13px] font-medium ${stock.color}`}>
-                    <span className={`w-2 h-2 rounded-full ${stock.dot}`} />
-                    {stock.text}
-                  </div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#667085] mb-2 px-1">
+                  Subcategories
+                </p>
+                <div className="space-y-1">
                   <button
-                    onClick={() => addToCart(item)}
-                    disabled={item.quantity <= 0}
-                    className="h-9 px-3 rounded-md border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => setActiveGroup("All")}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-md text-[13px] ${
+                      activeGroup === "All"
+                        ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                        : "text-[#667085] hover:bg-[#F6F7F9]"
+                    }`}
                   >
-                    {item.quantity <= 0
-                      ? "Unavailable"
-                      : addedId === item.id
-                      ? "Added"
-                      : "+ Add"}
+                    All
                   </button>
+                  {subGroups.map((group) => (
+                    <button
+                      key={group}
+                      onClick={() => setActiveGroup(group)}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-md text-[13px] ${
+                        activeGroup === group
+                          ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold"
+                          : "text-[#667085] hover:bg-[#F6F7F9]"
+                      }`}
+                    >
+                      {group}
+                    </button>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            </aside>
+          )}
+
+          {/* Main list */}
+          <main className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">
+                {query
+                  ? "Search results"
+                  : activeGroup === "All"
+                  ? activeSection
+                  : activeGroup}
+              </h2>
+              <p className="text-[13px] text-[#667085]">{visibleItems.length} items</p>
+            </div>
+
+            {loading && <p className="text-sm text-[#667085]">Loading catalogue...</p>}
+
+            {!loading && visibleItems.length === 0 && (
+              <div className="bg-white border border-[#E4E7EC] rounded-lg p-6 text-sm text-[#667085]">
+                No items found.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {visibleItems.map((item) => {
+                const stock = stockLabel(item.quantity);
+                const isFlipped = !!flipped[item.id];
+
+                return (
+                  <div key={item.id} className="relative [perspective:1000px]">
+                    <div
+                      className={`relative transition-transform duration-500 [transform-style:preserve-3d] ${
+                        isFlipped ? "[transform:rotateY(180deg)]" : ""
+                      }`}
+                    >
+                      {/* FRONT */}
+                      <div className="bg-white border border-[#E4E7EC] rounded-lg px-4 py-3 flex items-center justify-between gap-4 [backface-visibility:hidden]">
+                        {item.photo && (
+                          <button
+                            onClick={() => toggleFlip(item.id)}
+                            title="Show photo"
+                            className="absolute top-0 right-3 w-7 h-4 bg-[#2563EB] rounded-b-md text-white text-[10px] font-bold flex items-end justify-center pb-0.5 hover:bg-[#1D4ED8]"
+                          >
+                            ▾
+                          </button>
+                        )}
+
+                        <div className="min-w-0 pr-8">
+                          <p className="text-[15px] font-semibold leading-snug">
+                            {item.brand || item.title}
+                            {item.model ? ` · ${item.model}` : ""}
+                          </p>
+                          <p className="text-[13px] text-[#667085] mt-0.5">
+                            {item.group}
+                          </p>
+                          {item.note && (
+                            <p className="text-[12px] text-[#667085] mt-1 line-clamp-1">
+                              {item.note}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div
+                            className={`flex items-center gap-1.5 text-[13px] font-medium ${stock.color}`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${stock.dot}`} />
+                            {stock.text}
+                          </div>
+                          <button
+                            onClick={() => addToCart(item)}
+                            disabled={item.quantity <= 0}
+                            className="h-9 px-3 rounded-md border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {item.quantity <= 0
+                              ? "Unavailable"
+                              : addedId === item.id
+                              ? "Added"
+                              : "+ Add"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* BACK (photo) */}
+                      <div className="absolute inset-0 bg-white border border-[#E4E7EC] rounded-lg p-3 flex items-center justify-center gap-3 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        {item.photo ? (
+                          <img
+                            src={item.photo}
+                            alt={item.brand || item.title}
+                            className="max-h-28 max-w-[70%] object-contain cursor-zoom-in rounded-md"
+                            onClick={() => setFullscreenPhoto(item.photo || null)}
+                          />
+                        ) : (
+                          <p className="text-sm text-[#667085]">No photo</p>
+                        )}
+                        <button
+                          onClick={() => toggleFlip(item.id)}
+                          className="absolute top-2 right-2 h-8 px-3 rounded-md border border-[#E4E7EC] bg-white text-xs font-semibold"
+                        >
+                          Back
+                        </button>
+                        {item.photo && (
+                          <button
+                            onClick={() => setFullscreenPhoto(item.photo || null)}
+                            className="absolute bottom-2 right-2 h-8 px-3 rounded-md bg-[#2563EB] text-white text-xs font-semibold"
+                          >
+                            Expand
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </main>
         </div>
       </div>
     </div>

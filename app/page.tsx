@@ -5,10 +5,12 @@ import Link from "next/link";
 
 // ========== CONFIG ==========
 const CORRECT_PASSWORD = "warehouse2026";
-const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
-const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
-const CART_KEY = "warehouse_cart";
+const SEARCH_URL =
+  "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
+const SUBMIT_URL =
+  "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
 const RESULTS_PER_PAGE = 12;
+const CART_KEY = "warehouse_cart";
 // ===========================
 
 interface InventoryItem {
@@ -24,6 +26,7 @@ interface InventoryItem {
   category?: string;
   note?: string;
   note2?: string;
+  photo?: string;
 }
 
 interface CartItem extends InventoryItem {
@@ -54,26 +57,27 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-
-useEffect(() => {
-  const savedCart = localStorage.getItem(CART_KEY);
-  if (savedCart) {
-    try {
-      setCart(JSON.parse(savedCart));
-    } catch {}
-  }
-}, []);
-
-useEffect(() => {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-}, [cart]);
-
   const [loading, setLoading] = useState(false);
   const [requesterName, setRequesterName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [message, setMessage] = useState("");
   const [batchId, setBatchId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem(CART_KEY);
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }, [cart]);
 
   let searchTimeout: NodeJS.Timeout;
 
@@ -101,6 +105,7 @@ useEffect(() => {
         const data = await res.json();
         setResults(data.items || []);
         setCurrentPage(1);
+        setFlipped({});
       } catch (err) {
         console.error(err);
         setResults([]);
@@ -112,7 +117,10 @@ useEffect(() => {
 
   const totalPages = Math.ceil(results.length / RESULTS_PER_PAGE);
   const startIndex = (currentPage - 1) * RESULTS_PER_PAGE;
-  const paginatedResults = results.slice(startIndex, startIndex + RESULTS_PER_PAGE);
+  const paginatedResults = results.slice(
+    startIndex,
+    startIndex + RESULTS_PER_PAGE
+  );
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -141,6 +149,10 @@ useEffect(() => {
 
   const removeFromCart = (id: string) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleFlip = (id: string) => {
+    setFlipped((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const submitOrder = async () => {
@@ -200,8 +212,12 @@ useEffect(() => {
       <div className="min-h-screen bg-[#E0E5EC] flex items-center justify-center px-4 font-sans text-gray-700">
         <div className="w-full max-w-sm">
           <div className="bg-[#E0E5EC] rounded-[2rem] shadow-[12px_12px_24px_#a3b1c6,-12px_-12px_24px_#ffffff] p-10">
-            <h1 className="text-2xl font-bold text-gray-700 mb-2 tracking-wide">Warehouse</h1>
-            <p className="text-sm font-medium text-gray-500 mb-8">System Access Required</p>
+            <h1 className="text-2xl font-bold text-gray-700 mb-2 tracking-wide">
+              Warehouse
+            </h1>
+            <p className="text-sm font-medium text-gray-500 mb-8">
+              System Access Required
+            </p>
             <form onSubmit={handleLogin} className="space-y-6">
               <input
                 type="password"
@@ -212,7 +228,9 @@ useEffect(() => {
                 autoFocus
               />
               {passwordError && (
-                <p className="text-sm font-semibold text-red-500 px-2">{passwordError}</p>
+                <p className="text-sm font-semibold text-red-500 px-2">
+                  {passwordError}
+                </p>
               )}
               <button
                 type="submit"
@@ -229,13 +247,36 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-20">
+      {/* Fullscreen photo */}
+      {fullscreenPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setFullscreenPhoto(null)}
+        >
+          <button
+            className="absolute top-4 right-4 h-10 px-4 rounded-xl bg-white text-sm font-bold shadow"
+            onClick={() => setFullscreenPhoto(null)}
+          >
+            Close
+          </button>
+          <img
+            src={fullscreenPhoto}
+            alt="Product"
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-700 tracking-tight drop-shadow-sm">
               Warehouse
             </h1>
-            <p className="text-sm font-semibold text-gray-500 mt-2">Search & Request Inventory</p>
+            <p className="text-sm font-semibold text-gray-500 mt-2">
+              Search & Request Inventory
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -266,62 +307,127 @@ useEffect(() => {
             className="w-full px-6 py-4 rounded-2xl bg-[#E0E5EC] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff] text-gray-700 font-medium placeholder:text-gray-400 focus:outline-none"
           />
           {loading && (
-            <p className="text-sm font-semibold text-gray-400 mt-4 px-2">Scanning index...</p>
+            <p className="text-sm font-semibold text-gray-400 mt-4 px-2">
+              Scanning index...
+            </p>
           )}
         </div>
 
         {results.length > 0 && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
-              {paginatedResults.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-6 flex flex-col"
-                >
-                  <div className="flex justify-between items-start gap-4 mb-4">
-                    <h3 className="font-bold text-gray-700 leading-snug">{item.title}</h3>
+              {paginatedResults.map((item) => {
+                const isFlipped = !!flipped[item.id];
+
+                return (
+                  <div key={item.id} className="relative [perspective:1000px]">
                     <div
-                      className={`px-3 py-1 rounded-full text-xs font-black shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] ${
-                        item.quantity > 0 ? "text-emerald-600" : "text-red-500"
+                      className={`relative transition-transform duration-500 [transform-style:preserve-3d] ${
+                        isFlipped ? "[transform:rotateY(180deg)]" : ""
                       }`}
                     >
-                      {item.quantity}
+                      {/* FRONT */}
+                      <div className="bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-6 flex flex-col min-h-[260px] [backface-visibility:hidden]">
+                        {item.photo && (
+                          <button
+                            onClick={() => toggleFlip(item.id)}
+                            title="Show photo"
+                            className="absolute top-0 right-5 w-8 h-5 bg-blue-600 text-white text-[10px] font-bold rounded-b-md flex items-end justify-center pb-0.5 hover:bg-blue-700 z-10"
+                          >
+                            ▾
+                          </button>
+                        )}
+
+                        <div className="flex justify-between items-start gap-4 mb-4 pr-6">
+                          <h3 className="font-bold text-gray-700 leading-snug">
+                            {item.title}
+                          </h3>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-black shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] ${
+                              item.quantity > 0
+                                ? "text-emerald-600"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {item.quantity}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm font-medium text-gray-500 mb-6 flex-grow">
+                          {item.brand && (
+                            <p>
+                              <span className="text-gray-400">Brand:</span>{" "}
+                              {item.brand}
+                            </p>
+                          )}
+                          {item.model && (
+                            <p>
+                              <span className="text-gray-400">Model:</span>{" "}
+                              {item.model}
+                            </p>
+                          )}
+                          {(item.field8 || item.field9) && (
+                            <p>
+                              <span className="text-gray-400">Category:</span>{" "}
+                              {[item.field8, item.field9]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
+                          {item.note && (
+                            <p className="text-gray-600 mt-3 p-3 rounded-lg shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] text-xs">
+                              {item.note}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => addToCart(item)}
+                          disabled={item.quantity <= 0}
+                          className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                        >
+                          {item.quantity > 0 ? "Push to Cart" : "Depleted"}
+                        </button>
+                      </div>
+
+                      {/* BACK */}
+                      <div className="absolute inset-0 bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-5 flex flex-col items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        {item.photo ? (
+                          <img
+                            src={item.photo}
+                            alt={item.title}
+                            className="max-h-40 max-w-full object-contain rounded-xl cursor-zoom-in mb-4"
+                            onClick={() =>
+                              setFullscreenPhoto(item.photo || null)
+                            }
+                          />
+                        ) : (
+                          <p className="text-sm text-gray-500 mb-4">No photo</p>
+                        )}
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => toggleFlip(item.id)}
+                            className="px-4 py-2 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
+                          >
+                            Back
+                          </button>
+                          {item.photo && (
+                            <button
+                              onClick={() =>
+                                setFullscreenPhoto(item.photo || null)
+                              }
+                              className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 shadow"
+                            >
+                              Expand
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="space-y-2 text-sm font-medium text-gray-500 mb-6 flex-grow">
-                    {item.brand && (
-                      <p>
-                        <span className="text-gray-400">Brand:</span> {item.brand}
-                      </p>
-                    )}
-                    {item.model && (
-                      <p>
-                        <span className="text-gray-400">Model:</span> {item.model}
-                      </p>
-                    )}
-                    {(item.field8 || item.field9) && (
-                      <p>
-                        <span className="text-gray-400">Category:</span>{" "}
-                        {[item.field8, item.field9].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
-                    {item.note && (
-                      <p className="text-gray-600 mt-3 p-3 rounded-lg shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] text-xs">
-                        {item.note}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => addToCart(item)}
-                    disabled={item.quantity <= 0}
-                    className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    {item.quantity > 0 ? "Push to Cart" : "Depleted"}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {totalPages > 1 && (
@@ -334,19 +440,21 @@ useEffect(() => {
                   Prev
                 </button>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`w-10 h-10 rounded-xl font-bold text-sm ${
-                      currentPage === page
-                        ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
-                        : "shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`w-10 h-10 rounded-xl font-bold text-sm ${
+                        currentPage === page
+                          ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+                          : "shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
 
                 <button
                   onClick={() => goToPage(currentPage + 1)}
@@ -377,8 +485,13 @@ useEffect(() => {
                   )}
                   <div className="flex items-center justify-between gap-6 py-2">
                     <div className="min-w-0 flex-grow">
-                      <p className="font-bold text-gray-700 truncate">{item.title}</p>
-                      <p className="text-sm font-medium text-gray-500 mt-1">{item.location}</p>
+                      <p className="font-bold text-gray-700 truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-sm font-medium text-gray-500 mt-1">
+                        {[item.brand, item.model].filter(Boolean).join(" · ") ||
+                          item.location}
+                      </p>
                     </div>
                     <div className="flex items-center gap-4 shrink-0">
                       <input
