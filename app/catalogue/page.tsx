@@ -111,13 +111,20 @@ const SECTION_ORDER = [
   "Other",
 ];
 
+function stockLabel(qty: number) {
+  if (qty <= 0) return { text: "Out of stock", color: "text-[#DC2626]", dot: "bg-[#DC2626]" };
+  if (qty <= 2) return { text: `${qty} low stock`, color: "text-[#F59E0B]", dot: "bg-[#F59E0B]" };
+  return { text: `${qty} available`, color: "text-[#16A34A]", dot: "bg-[#16A34A]" };
+}
+
 export default function CataloguePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState("Cables");
-  const [activeGroup, setActiveGroup] = useState("");
+  const [activeGroup, setActiveGroup] = useState("All");
   const [addedId, setAddedId] = useState("");
 
   useEffect(() => {
@@ -138,7 +145,6 @@ export default function CataloguePage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const load = async () => {
       setLoading(true);
       try {
@@ -153,7 +159,6 @@ export default function CataloguePage() {
       }
       setLoading(false);
     };
-
     load();
   }, [isAuthenticated]);
 
@@ -171,13 +176,24 @@ export default function CataloguePage() {
   const sections = SECTION_ORDER.filter((s) => grouped[s]);
   const subGroups = Object.keys(grouped[activeSection] || {});
 
-  useEffect(() => {
-    if (subGroups.length > 0 && !subGroups.includes(activeGroup)) {
-      setActiveGroup(subGroups[0]);
-    }
-  }, [activeSection, subGroups, activeGroup]);
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list: InventoryItem[] = [];
 
-  const visibleItems = grouped[activeSection]?.[activeGroup] || [];
+    if (q) {
+      list = items.filter((item) =>
+        `${item.title} ${item.brand} ${item.model} ${item.sku} ${item.note} ${item.location} ${item.group}`
+          .toLowerCase()
+          .includes(q)
+      );
+    } else if (activeGroup === "All") {
+      list = Object.values(grouped[activeSection] || {}).flat();
+    } else {
+      list = grouped[activeSection]?.[activeGroup] || [];
+    }
+
+    return list;
+  }, [items, query, activeSection, activeGroup, grouped]);
 
   const addToCart = (item: InventoryItem) => {
     setCart((prev) => {
@@ -195,118 +211,146 @@ export default function CataloguePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#E0E5EC] flex items-center justify-center text-gray-700">
-        <p className="font-bold">Please log in from the Warehouse page first.</p>
+      <div className="min-h-screen bg-[#F6F7F9] flex items-center justify-center text-[#172033]">
+        <p className="font-semibold">Please log in from the Warehouse page first.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-24">
-      <div className="max-w-6xl mx-auto px-5 py-8">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-[#F6F7F9] text-[#172033] font-sans">
+      <div className="max-w-6xl mx-auto px-5 py-6">
+        <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-3xl font-extrabold">Catalogue</h1>
-            <p className="text-sm font-semibold text-gray-500 mt-1">
-              {visibleItems.length} items in {activeGroup || activeSection}
+            <h1 className="text-[28px] font-bold tracking-tight">Warehouse Catalogue</h1>
+            <p className="text-[13px] text-[#667085] mt-1">
+              Find → identify → add to request
             </p>
           </div>
           <Link
             href="/"
-            className="px-5 py-2.5 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
+            className="h-10 px-4 rounded-lg border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9]"
           >
-            Search / Cart ({cart.length})
+            Request ({cart.length})
           </Link>
         </div>
 
-        <div className="mb-4 p-3 rounded-2xl shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff]">
-          <div className="flex flex-wrap gap-2">
-            {sections.map((section) => (
-              <button
-                key={section}
-                onClick={() => {
-                  setActiveSection(section);
-                  setActiveGroup("");
-                }}
-                className={`px-4 py-2 rounded-xl text-sm font-bold ${
-                  activeSection === section
-                    ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
-                    : "shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
-                }`}
-              >
-                {section}
-              </button>
-            ))}
-          </div>
+        <div className="mb-5">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search item, SKU, connector, location or description..."
+            className="w-full h-12 px-4 rounded-lg border border-[#E4E7EC] bg-white text-[15px] placeholder:text-[#667085] focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+          />
         </div>
 
-        {subGroups.length > 0 && (
-          <div className="mb-8 p-3 rounded-2xl shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff]">
-            <div className="flex flex-wrap gap-2">
+        {!query && (
+          <>
+            <div className="flex flex-wrap gap-5 border-b border-[#E4E7EC] mb-4">
+              {sections.map((section) => (
+                <button
+                  key={section}
+                  onClick={() => {
+                    setActiveSection(section);
+                    setActiveGroup("All");
+                  }}
+                  className={`pb-3 text-sm ${
+                    activeSection === section
+                      ? "text-[#2563EB] font-semibold border-b-2 border-[#2563EB]"
+                      : "text-[#667085] font-medium"
+                  }`}
+                >
+                  {section}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => setActiveGroup("All")}
+                className={`px-3 py-1.5 rounded-full text-[13px] font-medium border ${
+                  activeGroup === "All"
+                    ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]"
+                    : "bg-white border-[#E4E7EC] text-[#667085]"
+                }`}
+              >
+                All
+              </button>
               {subGroups.map((group) => (
                 <button
                   key={group}
                   onClick={() => setActiveGroup(group)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold ${
+                  className={`px-3 py-1.5 rounded-full text-[13px] font-medium border ${
                     activeGroup === group
-                      ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
-                      : "shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
+                      ? "bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]"
+                      : "bg-white border-[#E4E7EC] text-[#667085]"
                   }`}
                 >
                   {group}
                 </button>
               ))}
             </div>
+          </>
+        )}
+
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">
+            {query ? "Search results" : activeGroup === "All" ? activeSection : activeGroup}
+          </h2>
+          <p className="text-[13px] text-[#667085]">{visibleItems.length} items</p>
+        </div>
+
+        {loading && <p className="text-sm text-[#667085]">Loading catalogue...</p>}
+
+        {!loading && visibleItems.length === 0 && (
+          <div className="bg-white border border-[#E4E7EC] rounded-lg p-6 text-sm text-[#667085]">
+            No items found.
           </div>
         )}
 
-        {loading && <p className="text-sm font-semibold text-gray-400">Loading catalogue...</p>}
-
-        {!loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {visibleItems.map((item) => (
+        <div className="space-y-2">
+          {visibleItems.map((item) => {
+            const stock = stockLabel(item.quantity);
+            return (
               <div
                 key={item.id}
-                className="rounded-2xl p-5 shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] flex flex-col"
+                className="bg-white border border-[#E4E7EC] rounded-lg px-4 py-3 flex items-center justify-between gap-4"
               >
-                <div className="flex justify-between items-start gap-3 mb-3">
-                  <div>
-                    <p className="font-bold leading-snug">{item.brand || item.title}</p>
-                    {item.model && (
-                      <p className="text-sm text-gray-500 mt-1">{item.model}</p>
-                    )}
-                  </div>
-                  <span
-                    className={`text-sm font-black ${
-                      item.quantity > 0 ? "text-emerald-600" : "text-red-500"
-                    }`}
-                  >
-                    {item.quantity}
-                  </span>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-snug">
+                    {item.brand || item.title}
+                    {item.model ? ` · ${item.model}` : ""}
+                  </p>
+                  <p className="text-[13px] text-[#667085] mt-0.5">
+                    {[item.group, item.location].filter(Boolean).join(" · ")}
+                  </p>
+                  {item.note && (
+                    <p className="text-[12px] text-[#667085] mt-1 line-clamp-1">{item.note}</p>
+                  )}
                 </div>
 
-                {item.location && (
-                  <p className="text-sm text-gray-500 mb-2">{item.location}</p>
-                )}
-                {item.note && (
-                  <p className="text-xs text-gray-600 mb-4 line-clamp-2">{item.note}</p>
-                )}
-
-                <button
-                  onClick={() => addToCart(item)}
-                  disabled={item.quantity <= 0}
-                  className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {item.quantity <= 0
-                    ? "Depleted"
-                    : addedId === item.id
-                    ? "Added"
-                    : "Push to Cart"}
-                </button>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className={`flex items-center gap-1.5 text-[13px] font-medium ${stock.color}`}>
+                    <span className={`w-2 h-2 rounded-full ${stock.dot}`} />
+                    {stock.text}
+                  </div>
+                  <button
+                    onClick={() => addToCart(item)}
+                    disabled={item.quantity <= 0}
+                    className="h-9 px-3 rounded-md border border-[#E4E7EC] bg-white text-sm font-medium hover:bg-[#F6F7F9] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {item.quantity <= 0
+                      ? "Unavailable"
+                      : addedId === item.id
+                      ? "Added"
+                      : "+ Add"}
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
