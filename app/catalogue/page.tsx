@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-const CORRECT_PASSWORD = "warehouse2026";
 const CATALOGUE_URL =
   "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-catalogue";
+const CART_KEY = "warehouse_cart";
 
 interface InventoryItem {
   id: string;
@@ -17,6 +17,10 @@ interface InventoryItem {
   quantity: number;
   location?: string;
   note?: string;
+}
+
+interface CartItem extends InventoryItem {
+  quantity: number;
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -34,7 +38,6 @@ const CATEGORY_MAP: Record<string, string> = {
   "USB Cable Extender": "Cables",
   "Audio Cable": "Cables",
   Cable: "Cables",
-
   "Power Adapter": "Power",
   "USB-C Fast Charger": "Power",
   "Power Supply": "Power",
@@ -44,7 +47,6 @@ const CATEGORY_MAP: Record<string, string> = {
   "Power Outlets": "Power",
   "Battery Charger": "Power",
   Battery: "Power",
-
   "Camera Lens": "Camera",
   "Camera Support": "Camera",
   "Photography Accessory": "Camera",
@@ -52,12 +54,10 @@ const CATEGORY_MAP: Record<string, string> = {
   "Camera Shutter": "Camera",
   "UV Filter Lens": "Camera",
   "Tripod Head": "Camera",
-
   "Video Adapter": "Video",
   "Micro Converter": "Video",
   "Video Capture": "Video",
   Video: "Video",
-
   "Microphone Adapter": "Audio",
   "Audio Networking": "Audio",
   Microphone: "Audio",
@@ -70,7 +70,6 @@ const CATEGORY_MAP: Record<string, string> = {
   "Microphone Stand": "Audio",
   "Audio Mixer": "Audio",
   "Audio Stagebox": "Audio",
-
   "Tube Light": "Lighting",
   "DMX Controller": "Lighting",
   "Lighting Accessory": "Lighting",
@@ -79,10 +78,8 @@ const CATEGORY_MAP: Record<string, string> = {
   Softbox: "Lighting",
   "Fresnel Lens": "Lighting",
   "Lighting Equipment": "Lighting",
-
   "Grip Equipment": "Grip / Studio",
   Acrylic: "Grip / Studio",
-
   "USB Hub": "Computing / Control",
   "Wireless Calling System": "Computing / Control",
   Numpad: "Computing / Control",
@@ -98,7 +95,6 @@ const CATEGORY_MAP: Record<string, string> = {
   "Broadcast Controller": "Computing / Control",
   "Broadcast Control": "Computing / Control",
   "Roulette Electronics": "Computing / Control",
-
   Adapter: "Other",
   "Cable Adapter": "Other",
 };
@@ -117,17 +113,28 @@ const SECTION_ORDER = [
 
 export default function CataloguePage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState("All");
+  const [activeSection, setActiveSection] = useState("Cables");
+  const [activeGroup, setActiveGroup] = useState("");
+  const [addedId, setAddedId] = useState("");
 
   useEffect(() => {
     if (localStorage.getItem("warehouse_auth") === "true") {
       setIsAuthenticated(true);
     }
+    const savedCart = localStorage.getItem(CART_KEY);
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {}
+    }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -150,145 +157,156 @@ export default function CataloguePage() {
     load();
   }, [isAuthenticated]);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInput === CORRECT_PASSWORD) {
-      localStorage.setItem("warehouse_auth", "true");
-      setIsAuthenticated(true);
-      setPasswordError("");
-    } else {
-      setPasswordError("Incorrect password");
-    }
-  };
-
   const grouped = useMemo(() => {
     const buckets: Record<string, Record<string, InventoryItem[]>> = {};
-
     for (const item of items) {
       const section = CATEGORY_MAP[item.group] || "Other";
       if (!buckets[section]) buckets[section] = {};
       if (!buckets[section][item.group]) buckets[section][item.group] = [];
       buckets[section][item.group].push(item);
     }
-
     return buckets;
   }, [items]);
 
   const sections = SECTION_ORDER.filter((s) => grouped[s]);
+  const subGroups = Object.keys(grouped[activeSection] || {});
+
+  useEffect(() => {
+    if (subGroups.length > 0 && !subGroups.includes(activeGroup)) {
+      setActiveGroup(subGroups[0]);
+    }
+  }, [activeSection, subGroups, activeGroup]);
+
+  const visibleItems = grouped[activeSection]?.[activeGroup] || [];
+
+  const addToCart = (item: InventoryItem) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
+      }
+      return [...prev, { ...item, quantity: 1 }];
+    });
+    setAddedId(item.id);
+    setTimeout(() => setAddedId(""), 1200);
+  };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#E0E5EC] flex items-center justify-center px-4 font-sans text-gray-700">
-        <div className="w-full max-w-sm">
-          <div className="bg-[#E0E5EC] rounded-[2rem] shadow-[12px_12px_24px_#a3b1c6,-12px_-12px_24px_#ffffff] p-10">
-            <h1 className="text-2xl font-bold mb-2">Warehouse</h1>
-            <p className="text-sm text-gray-500 mb-8">System Access Required</p>
-            <form onSubmit={handleLogin} className="space-y-6">
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Enter Password"
-                className="w-full px-5 py-4 rounded-xl bg-[#E0E5EC] shadow-[inset_6px_6px_10px_#a3b1c6,inset_-6px_-6px_10px_#ffffff] focus:outline-none"
-                autoFocus
-              />
-              {passwordError && (
-                <p className="text-sm font-semibold text-red-500">{passwordError}</p>
-              )}
-              <button
-                type="submit"
-                className="w-full py-4 rounded-xl font-bold shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff]"
-              >
-                Unlock
-              </button>
-            </form>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#E0E5EC] flex items-center justify-center text-gray-700">
+        <p className="font-bold">Please log in from the Warehouse page first.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-20">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-10">
+    <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-24">
+      <div className="max-w-6xl mx-auto px-5 py-8">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-extrabold">Catalogue</h1>
-            <p className="text-sm font-semibold text-gray-500 mt-2">
-              Inventory grouped by type
+            <p className="text-sm font-semibold text-gray-500 mt-1">
+              {visibleItems.length} items in {activeGroup || activeSection}
             </p>
           </div>
           <Link
             href="/"
             className="px-5 py-2.5 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
           >
-            Back to Search
+            Search / Cart ({cart.length})
           </Link>
         </div>
 
-        <div className="flex flex-wrap gap-3 mb-10">
-          {["All", ...sections].map((section) => (
-            <button
-              key={section}
-              onClick={() => setActiveSection(section)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold ${
-                activeSection === section
-                  ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
-                  : "shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
-              }`}
-            >
-              {section}
-            </button>
-          ))}
+        <div className="mb-4 p-3 rounded-2xl shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff]">
+          <div className="flex flex-wrap gap-2">
+            {sections.map((section) => (
+              <button
+                key={section}
+                onClick={() => {
+                  setActiveSection(section);
+                  setActiveGroup("");
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold ${
+                  activeSection === section
+                    ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+                    : "shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
+                }`}
+              >
+                {section}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {subGroups.length > 0 && (
+          <div className="mb-8 p-3 rounded-2xl shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff]">
+            <div className="flex flex-wrap gap-2">
+              {subGroups.map((group) => (
+                <button
+                  key={group}
+                  onClick={() => setActiveGroup(group)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold ${
+                    activeGroup === group
+                      ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+                      : "shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
+                  }`}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading && <p className="text-sm font-semibold text-gray-400">Loading catalogue...</p>}
 
-        {!loading &&
-          sections
-            .filter((s) => activeSection === "All" || s === activeSection)
-            .map((section) => (
-              <div key={section} className="mb-14">
-                <h2 className="text-xl font-extrabold mb-6">{section}</h2>
-
-                {Object.entries(grouped[section]).map(([groupName, groupItems]) => (
-                  <div key={groupName} className="mb-8">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-4">
-                      {groupName}
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {groupItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-3xl p-5 shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff]"
-                        >
-                          <div className="flex justify-between items-start gap-3 mb-3">
-                            <p className="font-bold">{item.brand || item.title}</p>
-                            <span
-                              className={`text-xs font-black ${
-                                item.quantity > 0 ? "text-emerald-600" : "text-red-500"
-                              }`}
-                            >
-                              {item.quantity}
-                            </span>
-                          </div>
-                          {item.model && (
-                            <p className="text-sm text-gray-500 mb-1">Model: {item.model}</p>
-                          )}
-                          {item.location && (
-                            <p className="text-sm text-gray-500 mb-1">Location: {item.location}</p>
-                          )}
-                          {item.note && (
-                            <p className="text-xs text-gray-600 mt-2">{item.note}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {visibleItems.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-2xl p-5 shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] flex flex-col"
+              >
+                <div className="flex justify-between items-start gap-3 mb-3">
+                  <div>
+                    <p className="font-bold leading-snug">{item.brand || item.title}</p>
+                    {item.model && (
+                      <p className="text-sm text-gray-500 mt-1">{item.model}</p>
+                    )}
                   </div>
-                ))}
+                  <span
+                    className={`text-sm font-black ${
+                      item.quantity > 0 ? "text-emerald-600" : "text-red-500"
+                    }`}
+                  >
+                    {item.quantity}
+                  </span>
+                </div>
+
+                {item.location && (
+                  <p className="text-sm text-gray-500 mb-2">{item.location}</p>
+                )}
+                {item.note && (
+                  <p className="text-xs text-gray-600 mb-4 line-clamp-2">{item.note}</p>
+                )}
+
+                <button
+                  onClick={() => addToCart(item)}
+                  disabled={item.quantity <= 0}
+                  className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {item.quantity <= 0
+                    ? "Depleted"
+                    : addedId === item.id
+                    ? "Added"
+                    : "Push to Cart"}
+                </button>
               </div>
             ))}
+          </div>
+        )}
       </div>
     </div>
   );
