@@ -7,6 +7,7 @@ import Link from "next/link";
 const CORRECT_PASSWORD = "warehouse2026";
 const SEARCH_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
 const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
+const CART_KEY = "warehouse_cart";
 const RESULTS_PER_PAGE = 12;
 // ===========================
 
@@ -53,6 +54,20 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+
+useEffect(() => {
+  const savedCart = localStorage.getItem(CART_KEY);
+  if (savedCart) {
+    try {
+      setCart(JSON.parse(savedCart));
+    } catch {}
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}, [cart]);
+
   const [loading, setLoading] = useState(false);
   const [requesterName, setRequesterName] = useState("");
   const [projectName, setProjectName] = useState("");
