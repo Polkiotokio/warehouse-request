@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 // ========== CONFIG ==========
 const CORRECT_PASSWORD = "warehouse2026";
@@ -9,7 +10,6 @@ const SUBMIT_URL = "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhoo
 const RESULTS_PER_PAGE = 12;
 // ===========================
 
-// ========== TYPESCRIPT INTERFACES ==========
 interface InventoryItem {
   id: string;
   title: string;
@@ -28,7 +28,6 @@ interface InventoryItem {
 interface CartItem extends InventoryItem {
   quantity: number;
 }
-// =========================================
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -96,7 +95,6 @@ export default function Home() {
     }, 350);
   };
 
-  // Pagination
   const totalPages = Math.ceil(results.length / RESULTS_PER_PAGE);
   const startIndex = (currentPage - 1) * RESULTS_PER_PAGE;
   const paginatedResults = results.slice(startIndex, startIndex + RESULTS_PER_PAGE);
@@ -119,10 +117,8 @@ export default function Home() {
     });
   };
 
-  // Cart fix: allow quantity 0, do NOT remove the item
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity < 0) return;
-
     setCart((prev) =>
       prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
@@ -152,15 +148,15 @@ export default function Home() {
           requesterName,
           projectName,
           items: cart.map((item) => ({
-  id: item.id,
-  itemName: item.title,
-  sku: item.sku || "",
-  quantity: item.quantity,
-  location: item.location || "",
-  brand: item.brand || "",
-  model: item.model || "",
-  note: item.note || "",
-})),
+            id: item.id,
+            itemName: item.title,
+            sku: item.sku || "",
+            quantity: item.quantity,
+            location: item.location || "",
+            brand: item.brand || "",
+            model: item.model || "",
+            note: item.note || "",
+          })),
         }),
       });
 
@@ -184,9 +180,6 @@ export default function Home() {
     }
   };
 
-  // ==========================================
-  // UI: Password Screen (Neumorphic)
-  // ==========================================
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#E0E5EC] flex items-center justify-center px-4 font-sans text-gray-700">
@@ -194,23 +187,18 @@ export default function Home() {
           <div className="bg-[#E0E5EC] rounded-[2rem] shadow-[12px_12px_24px_#a3b1c6,-12px_-12px_24px_#ffffff] p-10">
             <h1 className="text-2xl font-bold text-gray-700 mb-2 tracking-wide">Warehouse</h1>
             <p className="text-sm font-medium text-gray-500 mb-8">System Access Required</p>
-
             <form onSubmit={handleLogin} className="space-y-6">
-              <div className="relative">
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Enter Password"
-                  className="w-full px-5 py-4 rounded-xl bg-[#E0E5EC] shadow-[inset_6px_6px_10px_#a3b1c6,inset_-6px_-6px_10px_#ffffff] text-gray-700 font-medium placeholder:text-gray-400 focus:outline-none transition-all"
-                  autoFocus
-                />
-              </div>
-
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter Password"
+                className="w-full px-5 py-4 rounded-xl bg-[#E0E5EC] shadow-[inset_6px_6px_10px_#a3b1c6,inset_-6px_-6px_10px_#ffffff] text-gray-700 font-medium placeholder:text-gray-400 focus:outline-none"
+                autoFocus
+              />
               {passwordError && (
                 <p className="text-sm font-semibold text-red-500 px-2">{passwordError}</p>
               )}
-
               <button
                 type="submit"
                 className="w-full py-4 bg-[#E0E5EC] text-gray-600 font-bold tracking-wide rounded-xl shadow-[6px_6px_12px_#a3b1c6,-6px_-6px_12px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] transition-all duration-200"
@@ -224,13 +212,9 @@ export default function Home() {
     );
   }
 
-  // ==========================================
-  // UI: Main App (Neumorphic)
-  // ==========================================
   return (
     <div className="min-h-screen bg-[#E0E5EC] text-gray-700 font-sans pb-20">
       <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-700 tracking-tight drop-shadow-sm">
@@ -238,32 +222,39 @@ export default function Home() {
             </h1>
             <p className="text-sm font-semibold text-gray-500 mt-2">Search & Request Inventory</p>
           </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem("warehouse_auth");
-              setIsAuthenticated(false);
-            }}
-            className="px-5 py-2.5 rounded-xl bg-[#E0E5EC] text-sm font-bold text-gray-500 shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] transition-all duration-200"
-          >
-            Log Out
-          </button>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/catalogue"
+              className="px-5 py-2.5 rounded-xl bg-[#E0E5EC] text-sm font-bold text-gray-500 shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] transition-all duration-200"
+            >
+              Catalogue
+            </Link>
+            <button
+              onClick={() => {
+                localStorage.removeItem("warehouse_auth");
+                setIsAuthenticated(false);
+              }}
+              className="px-5 py-2.5 rounded-xl bg-[#E0E5EC] text-sm font-bold text-gray-500 shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] transition-all duration-200"
+            >
+              Log Out
+            </button>
+          </div>
         </div>
 
-        {/* Search */}
         <div className="mb-12">
           <input
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by brand, model, note..."
-            className="w-full px-6 py-4 rounded-2xl bg-[#E0E5EC] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff] text-gray-700 font-medium placeholder:text-gray-400 focus:outline-none transition-all"
+            className="w-full px-6 py-4 rounded-2xl bg-[#E0E5EC] shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff] text-gray-700 font-medium placeholder:text-gray-400 focus:outline-none"
           />
           {loading && (
             <p className="text-sm font-semibold text-gray-400 mt-4 px-2">Scanning index...</p>
           )}
         </div>
 
-        {/* Results */}
         {results.length > 0 && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
@@ -273,9 +264,7 @@ export default function Home() {
                   className="bg-[#E0E5EC] rounded-3xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] p-6 flex flex-col"
                 >
                   <div className="flex justify-between items-start gap-4 mb-4">
-                    <h3 className="font-bold text-gray-700 leading-snug">
-                      {item.title}
-                    </h3>
+                    <h3 className="font-bold text-gray-700 leading-snug">{item.title}</h3>
                     <div
                       className={`px-3 py-1 rounded-full text-xs font-black shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] ${
                         item.quantity > 0 ? "text-emerald-600" : "text-red-500"
@@ -312,7 +301,7 @@ export default function Home() {
                   <button
                     onClick={() => addToCart(item)}
                     disabled={item.quantity <= 0}
-                    className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
+                    className="w-full py-3 mt-auto rounded-xl font-bold text-gray-600 bg-[#E0E5EC] shadow-[5px_5px_10px_#a3b1c6,-5px_-5px_10px_#ffffff] active:shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
                   >
                     {item.quantity > 0 ? "Push to Cart" : "Depleted"}
                   </button>
@@ -320,13 +309,12 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex flex-wrap items-center justify-center gap-3 mb-16">
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
@@ -335,10 +323,10 @@ export default function Home() {
                   <button
                     key={page}
                     onClick={() => goToPage(page)}
-                    className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
+                    className={`w-10 h-10 rounded-xl font-bold text-sm ${
                       currentPage === page
-                        ? "bg-[#E0E5EC] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] text-gray-800"
-                        : "bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] text-gray-600 active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff]"
+                        ? "shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff]"
+                        : "shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff]"
                     }`}
                   >
                     {page}
@@ -348,25 +336,20 @@ export default function Home() {
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] active:shadow-[inset_2px_2px_5px_#a3b1c6,inset_-2px_-2px_5px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-xl font-bold text-sm bg-[#E0E5EC] shadow-[4px_4px_8px_#a3b1c6,-4px_-4px_8px_#ffffff] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
-
-                <span className="text-sm font-medium text-gray-500 ml-2">
-                  Page {currentPage} of {totalPages}
-                </span>
               </div>
             )}
           </>
         )}
 
-        {/* Cart */}
         {cart.length > 0 && (
           <div className="bg-[#E0E5EC] rounded-[2rem] shadow-[12px_12px_24px_#a3b1c6,-12px_-12px_24px_#ffffff] p-8 lg:p-10">
-            <h2 className="text-xl font-extrabold text-gray-700 mb-8 flex items-center gap-3">
+            <h2 className="text-xl font-extrabold text-gray-700 mb-8">
               Active Request
-              <span className="px-3 py-1 rounded-full shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] text-sm text-gray-600">
+              <span className="ml-3 px-3 py-1 rounded-full shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] text-sm">
                 {cart.length} item{cart.length > 1 ? "s" : ""}
               </span>
             </h2>
@@ -377,13 +360,11 @@ export default function Home() {
                   {index > 0 && (
                     <div className="w-full h-[2px] bg-[#E0E5EC] shadow-[inset_1px_1px_2px_#a3b1c6,inset_-1px_-1px_2px_#ffffff] my-4 rounded-full" />
                   )}
-
                   <div className="flex items-center justify-between gap-6 py-2">
                     <div className="min-w-0 flex-grow">
                       <p className="font-bold text-gray-700 truncate">{item.title}</p>
                       <p className="text-sm font-medium text-gray-500 mt-1">{item.location}</p>
                     </div>
-
                     <div className="flex items-center gap-4 shrink-0">
                       <input
                         type="number"
@@ -395,13 +376,16 @@ export default function Home() {
                             updateQuantity(item.id, 0);
                             return;
                           }
-                          updateQuantity(item.id, parseInt(val) || 0);
+                          const num = parseInt(val, 10);
+                          if (!isNaN(num) && num >= 0) {
+                            updateQuantity(item.id, num);
+                          }
                         }}
                         className="w-16 px-2 py-2 text-center font-bold text-gray-700 bg-[#E0E5EC] shadow-[inset_3px_3px_6px_#a3b1c6,inset_-3px_-3px_6px_#ffffff] rounded-lg focus:outline-none"
                       />
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider text-red-400 bg-[#E0E5EC] shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff] active:shadow-[inset_2px_2px_4px_#a3b1c6,inset_-2px_-2px_4px_#ffffff] transition-all duration-200"
+                        className="px-3 py-2 rounded-lg font-bold text-xs uppercase tracking-wider text-red-400 shadow-[3px_3px_6px_#a3b1c6,-3px_-3px_6px_#ffffff]"
                       >
                         Drop
                       </button>
@@ -420,7 +404,7 @@ export default function Home() {
                   type="text"
                   value={requesterName}
                   onChange={(e) => setRequesterName(e.target.value)}
-                  className="w-full px-5 py-3.5 rounded-xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] text-gray-700 font-medium focus:outline-none transition-all"
+                  className="w-full px-5 py-3.5 rounded-xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] focus:outline-none"
                   placeholder="Enter your name"
                 />
               </div>
@@ -432,7 +416,7 @@ export default function Home() {
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full px-5 py-3.5 rounded-xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] text-gray-700 font-medium focus:outline-none transition-all"
+                  className="w-full px-5 py-3.5 rounded-xl bg-[#E0E5EC] shadow-[inset_4px_4px_8px_#a3b1c6,inset_-4px_-4px_8px_#ffffff] focus:outline-none"
                   placeholder="Enter project name"
                 />
               </div>
@@ -440,20 +424,17 @@ export default function Home() {
 
             <button
               onClick={submitOrder}
-              className="w-full py-4 bg-[#E0E5EC] text-gray-700 text-lg font-black tracking-wide rounded-2xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] active:shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff] transition-all duration-200"
+              className="w-full py-4 text-lg font-black tracking-wide rounded-2xl shadow-[8px_8px_16px_#a3b1c6,-8px_-8px_16px_#ffffff] active:shadow-[inset_6px_6px_12px_#a3b1c6,inset_-6px_-6px_12px_#ffffff]"
             >
               Transmit Order
             </button>
 
             {message && (
-              <div className="mt-8 p-5 rounded-2xl bg-[#E0E5EC] shadow-[inset_5px_5px_10px_#a3b1c6,inset_-5px_-5px_10px_#ffffff]">
-                <p className="text-sm font-bold text-gray-700">{message}</p>
+              <div className="mt-8 p-5 rounded-2xl shadow-[inset_5px_5px_10px_#a3b1c6,inset_-5px_-5px_10px_#ffffff]">
+                <p className="text-sm font-bold">{message}</p>
                 {batchId && (
-                  <p className="text-xs font-medium text-gray-500 mt-2">
-                    Batch Signature:{" "}
-                    <span className="font-mono bg-[#E0E5EC] px-2 py-1 rounded shadow-[inset_1px_1px_3px_#a3b1c6,inset_-1px_-1px_3px_#ffffff]">
-                      {batchId}
-                    </span>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Batch Signature: <span className="font-mono">{batchId}</span>
                   </p>
                 )}
               </div>
