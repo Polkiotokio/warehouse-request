@@ -152,12 +152,15 @@ export default function Home() {
           requesterName,
           projectName,
           items: cart.map((item) => ({
-            id: item.id,
-            itemName: item.title,
-            sku: item.sku || "",
-            quantity: item.quantity,
-            location: item.location || "",
-          })),
+  id: item.id,
+  itemName: item.title,
+  sku: item.sku || "",
+  quantity: item.quantity,
+  location: item.location || "",
+  brand: item.brand || "",
+  model: item.model || "",
+  note: item.note || "",
+})),
         }),
       });
 
