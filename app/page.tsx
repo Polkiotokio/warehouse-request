@@ -1,14 +1,11 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // ========== CONFIG ==========
 const CORRECT_PASSWORD = "warehouse2026";
-const SEARCH_URL =
-  "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/inventory-search";
-const SUBMIT_URL =
-  "https://vincenzo-unnotational-merrilee.ngrok-free.dev/webhook/submit-order";
+const SEARCH_URL = "/api/inventory-search";
+const SUBMIT_URL = "/api/submit";
 const RESULTS_PER_PAGE = 12;
 const CART_KEY = "warehouse_cart";
 // ===========================
@@ -79,28 +76,20 @@ export default function Home() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  let searchTimeout: NodeJS.Timeout;
-
+    let searchTimeout: NodeJS.Timeout;
   const handleSearch = (value: string) => {
     setQuery(value);
     clearTimeout(searchTimeout);
-
     if (!value.trim()) {
       setResults([]);
       setCurrentPage(1);
       return;
     }
-
     searchTimeout = setTimeout(async () => {
       setLoading(true);
       try {
         const res = await fetch(
-          `${SEARCH_URL}?query=${encodeURIComponent(value)}`,
-          {
-            headers: {
-              "ngrok-skip-browser-warning": "true",
-            },
-          }
+          `${SEARCH_URL}?query=${encodeURIComponent(value)}`
         );
         const data = await res.json();
         setResults(data.items || []);
@@ -155,21 +144,18 @@ export default function Home() {
     setFlipped((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const submitOrder = async () => {
+    const submitOrder = async () => {
     if (!requesterName.trim() || !projectName.trim() || cart.length === 0) {
       alert("Please fill in your name, project, and add at least one item.");
       return;
     }
-
     setMessage("Submitting...");
     setBatchId("");
-
     try {
       const res = await fetch(SUBMIT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({
           requesterName,
@@ -186,9 +172,7 @@ export default function Home() {
           })),
         }),
       });
-
       const data = await res.json();
-
       if (data.success) {
         setBatchId(data.batchId);
         setMessage(data.message);
