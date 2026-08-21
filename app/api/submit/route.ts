@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callN8nWebhook } from '@/lib/n8n';
+import { callN8nWebhook } from '../../../lib/n8n';
 
 /**
  * POST /api/submit
